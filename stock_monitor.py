@@ -1,10 +1,8 @@
 import os
 import sys
-import json
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
-from urllib.parse import quote
 
 PRODUCT_URL = (
     "https://www.firstcry.com/hot-wheels/"
@@ -15,7 +13,10 @@ PRODUCT_NAME = "Hot Wheels Second Story Lorry Die Cast Free Wheel Car Transport 
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
-WHATSAPP_MEMBERS = os.environ.get("WHATSAPP_MEMBERS", "")
+GREEN_API_URL = os.environ.get("GREEN_API_URL", "")
+GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
+GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
+WHATSAPP_GROUP_ID = os.environ.get("WHATSAPP_GROUP_ID", "")
 
 HEADERS = {
     "User-Agent": (
@@ -50,35 +51,39 @@ def check_stock() -> bool:
     return False
 
 
-def send_whatsapp(phone: str, apikey: str, message: str):
-    encoded_msg = quote(message)
+def send_whatsapp_group(message: str):
     url = (
-        f"https://api.callmebot.com/whatsapp.php"
-        f"?phone={phone}"
-        f"&text={encoded_msg}"
-        f"&apikey={apikey}"
+        f"{GREEN_API_URL}/waInstance{GREEN_API_ID}"
+        f"/sendMessage/{GREEN_API_TOKEN}"
     )
-    resp = requests.get(url, timeout=30)
+    payload = {
+        "chatId": WHATSAPP_GROUP_ID,
+        "message": message,
+    }
+    resp = requests.post(url, json=payload, timeout=30)
     if resp.status_code == 200:
-        print(f"  -> Sent to {phone}")
+        print("WhatsApp group message sent!")
     else:
-        print(f"  -> FAILED for {phone}: {resp.status_code} — {resp.text}")
-
-
-def notify_group(message: str):
-    members = json.loads(WHATSAPP_MEMBERS)
-    print(f"Notifying {len(members)} group member(s) …")
-    for member in members:
-        send_whatsapp(member["phone"], member["apikey"], message)
+        print(f"Failed: {resp.status_code} — {resp.text}")
+        sys.exit(1)
 
 
 def main():
-    if not WHATSAPP_MEMBERS:
-        print("ERROR: WHATSAPP_MEMBERS secret is not set.")
+    missing = []
+    if not GREEN_API_URL:
+        missing.append("GREEN_API_URL")
+    if not GREEN_API_ID:
+        missing.append("GREEN_API_ID")
+    if not GREEN_API_TOKEN:
+        missing.append("GREEN_API_TOKEN")
+    if not WHATSAPP_GROUP_ID:
+        missing.append("WHATSAPP_GROUP_ID")
+    if missing:
+        print(f"ERROR: Missing secrets: {', '.join(missing)}")
         sys.exit(1)
 
     now = datetime.now(IST)
-    print(f"[{now:%Y-%m-%d %I:%M:%S %p} IST] Checking stock for: {PRODUCT_NAME}")
+    print(f"[{now:%Y-%m-%d %I:%M:%S %p} IST] Checking: {PRODUCT_NAME}")
 
     try:
         in_stock = check_stock()
@@ -87,7 +92,7 @@ def main():
         sys.exit(1)
 
     if in_stock:
-        print("IN STOCK! Sending WhatsApp alerts …")
+        print("IN STOCK! Sending group alert …")
         message = (
             f"🟢 *STOCK ALERT!*\n\n"
             f"*{PRODUCT_NAME}*\n"
@@ -95,7 +100,7 @@ def main():
             f"🕐 Time: {now:%d-%b-%Y %I:%M:%S %p} IST\n\n"
             f"🔗 Buy now:\n{PRODUCT_URL}"
         )
-        notify_group(message)
+        send_whatsapp_group(message)
     else:
         print("Still out of stock.")
 
