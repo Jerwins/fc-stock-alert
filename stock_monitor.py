@@ -15,6 +15,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true"
 
 HEADERS = {
     "User-Agent": (
@@ -79,7 +80,16 @@ def main():
         print(f"Error checking stock: {e}")
         sys.exit(1)
 
-    if in_stock:
+    if TEST_MODE:
+        print("TEST MODE — sending test message …")
+        message = (
+            f"✅ *TEST — Bot is working!*\n\n"
+            f"Monitoring: *{PRODUCT_NAME}*\n"
+            f"Status: {'IN STOCK ✅' if in_stock else 'Out of stock ❌'}\n"
+            f"🕐 Time: {now:%d-%b-%Y %I:%M:%S %p} IST"
+        )
+        send_telegram(message)
+    elif in_stock:
         print("IN STOCK! Sending Telegram alert …")
         message = (
             f"🟢 *STOCK ALERT!*\n\n"
