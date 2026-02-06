@@ -13,10 +13,8 @@ PRODUCT_NAME = "Hot Wheels Second Story Lorry Die Cast Free Wheel Car Transport 
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
-GREEN_API_URL = os.environ.get("GREEN_API_URL", "")
-GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
-GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
-WHATSAPP_GROUP_ID = os.environ.get("WHATSAPP_GROUP_ID", "")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 HEADERS = {
     "User-Agent": (
@@ -51,35 +49,25 @@ def check_stock() -> bool:
     return False
 
 
-def send_whatsapp_group(message: str):
-    url = (
-        f"{GREEN_API_URL}/waInstance{GREEN_API_ID}"
-        f"/sendMessage/{GREEN_API_TOKEN}"
-    )
+def send_telegram(message: str):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
-        "chatId": WHATSAPP_GROUP_ID,
-        "message": message,
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": False,
     }
     resp = requests.post(url, json=payload, timeout=30)
     if resp.status_code == 200:
-        print("WhatsApp group message sent!")
+        print("Telegram notification sent!")
     else:
         print(f"Failed: {resp.status_code} — {resp.text}")
         sys.exit(1)
 
 
 def main():
-    missing = []
-    if not GREEN_API_URL:
-        missing.append("GREEN_API_URL")
-    if not GREEN_API_ID:
-        missing.append("GREEN_API_ID")
-    if not GREEN_API_TOKEN:
-        missing.append("GREEN_API_TOKEN")
-    if not WHATSAPP_GROUP_ID:
-        missing.append("WHATSAPP_GROUP_ID")
-    if missing:
-        print(f"ERROR: Missing secrets: {', '.join(missing)}")
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("ERROR: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID secrets are not set.")
         sys.exit(1)
 
     now = datetime.now(IST)
@@ -92,15 +80,15 @@ def main():
         sys.exit(1)
 
     if in_stock:
-        print("IN STOCK! Sending group alert …")
+        print("IN STOCK! Sending Telegram alert …")
         message = (
             f"🟢 *STOCK ALERT!*\n\n"
             f"*{PRODUCT_NAME}*\n"
             f"is now *IN STOCK* on FirstCry!\n\n"
             f"🕐 Time: {now:%d-%b-%Y %I:%M:%S %p} IST\n\n"
-            f"🔗 Buy now:\n{PRODUCT_URL}"
+            f"🔗 [Buy now]({PRODUCT_URL})"
         )
-        send_whatsapp_group(message)
+        send_telegram(message)
     else:
         print("Still out of stock.")
 

@@ -1,57 +1,47 @@
 # FirstCry Stock Monitor Bot
 
-Monitors [Hot Wheels Second Story Lorry](https://www.firstcry.com/hot-wheels/hot-wheels-second-story-lorry-die-cast-free-wheel-car-transport-truck-red/22159210/product-detail) on FirstCry and sends a WhatsApp **group** notification when it comes back in stock.
+Monitors [Hot Wheels Second Story Lorry](https://www.firstcry.com/hot-wheels/hot-wheels-second-story-lorry-die-cast-free-wheel-car-transport-truck-red/22159210/product-detail) on FirstCry and sends a **Telegram group** notification when it comes back in stock.
 
-Runs in the cloud via **GitHub Actions** (free) — checks every 5 minutes.
-Uses **GREEN-API** (free developer tier) to send messages directly to a WhatsApp group.
+Runs free in the cloud via **GitHub Actions** — checks every 5 minutes.
 
 ---
 
-## Setup (one-time, ~10 minutes)
+## Setup (one-time, ~5 minutes)
 
-### Step 1 — Create a free GREEN-API account
+### Step 1 — Create a Telegram Bot
 
-1. Go to [https://console.green-api.com](https://console.green-api.com) and sign up.
-2. Create an instance (free "Developer" plan).
-3. Link your WhatsApp by scanning the QR code shown in the console.
-4. From the instance dashboard, note down:
-   - **API URL** (e.g. `https://api.green-api.com`)
-   - **idInstance** (e.g. `1101234567`)
-   - **apiTokenInstance** (e.g. `abc123def456...`)
+1. Open Telegram and message [@BotFather](https://t.me/BotFather).
+2. Send `/newbot`, pick a name and username.
+3. BotFather replies with your **Bot Token** — copy it.
 
-### Step 2 — Get your WhatsApp Group ID
+### Step 2 — Create a group and get the Chat ID
 
-1. In the GREEN-API console, go to **API > Testing** or use Postman.
-2. Call the `getContacts` endpoint — it lists all chats.
-3. Find your group — its ID looks like `120363012345678901@g.us`.
-4. Copy that Group ID.
-
-Alternatively, use this API call:
-```
-GET {apiUrl}/waInstance{idInstance}/getContacts/{apiTokenInstance}
-```
-Look for entries with `@g.us` — those are groups.
+1. Create a Telegram group and add your bot to it.
+2. Send any message in the group.
+3. Open this URL in your browser (replace `BOT_TOKEN` with your token):
+   ```
+   https://api.telegram.org/botBOT_TOKEN/getUpdates
+   ```
+4. In the JSON response, find `"chat":{"id":-100XXXXXXXXXX}` — that negative number is your **Chat ID**.
 
 ### Step 3 — Add secrets to GitHub
 
-Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** and add:
+Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
-| Secret Name         | Value                                          |
-|---------------------|-------------------------------------------------|
-| `GREEN_API_URL`     | `https://api.green-api.com` (or your API URL)   |
-| `GREEN_API_ID`      | Your idInstance (e.g. `1101234567`)              |
-| `GREEN_API_TOKEN`   | Your apiTokenInstance                           |
-| `WHATSAPP_GROUP_ID` | Your group chat ID (e.g. `120363...@g.us`)      |
+| Secret Name          | Value                              |
+|----------------------|------------------------------------|
+| `TELEGRAM_BOT_TOKEN` | Token from BotFather               |
+| `TELEGRAM_CHAT_ID`   | Group chat ID (e.g. `-1001234567890`) |
 
 ### Step 4 — Enable the workflow
 
-Go to the **Actions** tab in your repo, enable workflows, and click **Run workflow** to test.
+Go to the **Actions** tab, enable workflows, and click **Run workflow** to test.
 
 ---
 
 ## How it works
 
 - GitHub Actions runs the script every **5 minutes**.
-- If the product is **in stock**, a message is sent to your WhatsApp group with the product name, link, and time (IST).
-- If it's **out of stock**, nothing happens.
-- Disable the workflow from the Actions tab once you've bought the product.
+- If the product is **in stock**, the bot sends a message to your Telegram group with the product name, buy link, and time (IST).
+- If it's **out of stock**, nothing happens (no spam).
+- Disable the workflow from the Actions tab once done.
